@@ -1,0 +1,133 @@
+---
+title: "Wine"
+author: "Taylor Jordan"
+date: "2023-10-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+install.packages("corrplot")
+install.packages("ggplot2")
+install.packages("ggcorrplot")
+
+## Load Packages
+```{r}
+library(dplyr)
+library(zoo)
+library(corrplot)
+library(ggcorrplot)
+```
+
+# 1.	Import the Wine.csv file and name the dataframe “Wine”.
+```{r}
+Wine <- read.csv("Wine.csv")
+```
+
+# 2.	Describe the structure of the Wine data frame immediately after import:
+## a.	What is the dimension of the data frame? 178 Rows and 14 Columns
+```{r}
+dim(Wine) #identifies the dimension of the dataframe
+```
+
+## b.	What are the numeric/integer variables? All Columns Except Type
+```{r}
+num_int_variables <- sapply(Wine, is.numeric) 
+num_int_variables <- names(num_int_variables[num_int_variables])
+print(num_int_variables) #identifies the numeric/integer variables
+```
+
+## c.	What are the character variables? Type
+```{r}
+char_variables <- sapply(Wine, is.character)
+char_variables <- names(char_variables[char_variables])
+print(char_variables) #identifies the character variables
+```
+
+# 3.	Format structure/types of data
+## a.	Type should be a factor
+```{r}
+Wine$Type <- factor(Wine$Type)
+```
+
+## b.	All other columns should be numeric or integer
+### Type is a Factor and all other variables are Numeric or Integer
+```{r}
+str(Wine)
+```
+
+# 4.	Clean the data.
+## a.	Duplicates, if any, should be removed
+```{r}
+distinct(Wine) #remove duplicates
+```
+
+## b.	Any observations missing the type value should be removed
+```{r}
+Wine %>% filter(!is.na(Type)) #remove rows that are missing value in the Type column
+```
+
+### c.	Any observations missing a numeric or integer value should have the missing value set to the average of that column
+```{r}
+wine_cleaned <- Wine %>%
+  mutate_if(is.numeric, ~ifelse(is.na(.), mean(., na.rm = TRUE), .)) #missing integer or numeric values will be set to the average of that column
+```
+
+## 5.	Summarize the numeric variables. Be sure to examine the minimum, first quartile, median, mean, third quartile, and maximum.
+```{r}
+numeric_columns <- sapply(wine_cleaned, is.numeric)
+numeric_data <- wine_cleaned[, numeric_columns]
+summary_stats <- summary(numeric_data)
+print(summary_stats)
+```
+
+## 6.	Create a new factor variable called high_Magnesium. If the Magnesium level is less than 100, set the value to “low.” Otherwise, the value is “high.”
+```{r}
+wine_cleaned$high_Magnesium <- factor(ifelse(wine_cleaned$Magnesium < 100, "low", "high"))
+```
+
+## 7.	Create a boxplot of Malic_Acid. 
+```{r}
+boxplot(wine_cleaned$Malic_Acid, main="Boxplot of Malic_Acid")
+```
+
+## 8.	Create a scatterplot of Malic_Acid and Ash. Add a trend line. Add labels to the plot.
+```{r}
+plot(wine_cleaned$Malic_Acid, wine_cleaned$Ash, pch = 19, col = "blue", xlab = "Malic_Acid", ylab = "Ash", main = "Scatterplot of Malic_Acid and Ash")
+abline(lm(wine_cleaned$Ash ~ wine_cleaned$Malic_Acid), col = "red")
+text(wine_cleaned$Malic_Acid, wine_cleaned$Ash, labels = rownames(wine_cleaned), pos = 3, cex = 0.7)
+```    
+     
+## 9.	Create three boxplots (on the same graph) of Proline by Type. Add labels to the plots. Fill the boxes with the color.
+```{r} 
+boxplot_plot <- ggplot(wine_cleaned, aes(x = Type, y = Proline, fill = Type)) +
+  geom_boxplot() +
+  labs(title = "Boxplots of Proline by Type",
+       x = "Type",
+       y = "Proline") +
+  theme(legend.position = "none")
+print(boxplot_plot)
+```
+
+## 10.	Create a new data frame called Wine_A, where the only data is Type “A” and Magnesium > 100. Show the first five rows of this new data frame.
+```{r} 
+Wine_A <- wine_cleaned[wine_cleaned$Type == "A" & wine_cleaned$Magnesium > 100, ]
+head(Wine_A, 5)
+```
+
+# The following questions use the Wine dataframe.
+## 11.	Display the average of alcohol by type
+```{r}
+average_alcohol_by_type <- tapply(Wine$Alcohol, Wine$Type, mean)
+print(average_alcohol_by_type)
+```
+
+## 12.	Using the package corrplot, report the Pearson’s correlation coefficients for the numeric variables. Remove the top half of the chart and the diagonal. Are there variables that are correlated? Assuming 'Wine' is your data frame.
+```{r}
+numeric_wine <- Wine[sapply(Wine, is.numeric)]
+correlation_matrix <- cor(numeric_wine, method = "pearson")
+corrplot(correlation_matrix, type = "upper", tl.col = "black")
+```
